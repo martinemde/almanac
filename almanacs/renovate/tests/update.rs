@@ -122,6 +122,20 @@ async fn newest(registry: Recording, packages: Vec<UpdatedPackage>) -> Published
 }
 
 #[tokio::test]
+async fn a_group_with_an_unreadable_row_is_unknown_even_when_readable_packages_are_old() {
+    let registry = Arc::new(Recording {
+        answer: Some(Published::At(datetime!(2020-01-01 0:00 UTC))),
+        ..Recording::default()
+    });
+    let ages = RegistryAges(registry);
+    let bare_image = "| ghcr.io/example/image | digest | `old` → `new` |\n";
+    for body in [format!("{NPM}{bare_image}"), format!("{bare_image}{NPM}")] {
+        let update = Untrusted::new(update_of(&PullText { body: Some(body) }));
+        assert_eq!(ages.newest(&update).await.unwrap(), Published::Unknown);
+    }
+}
+
+#[tokio::test]
 async fn an_update_with_nothing_readable_is_unknown() {
     assert_eq!(
         newest(Recording::default(), vec![]).await,

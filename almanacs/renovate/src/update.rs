@@ -93,16 +93,19 @@ fn package_of(row: &str) -> Option<UpdatedPackage> {
     })
 }
 
-/// Reads the table Renovate puts at the top of a pull request. Anything it cannot read is left
-/// out, and an update it cannot fully read is not cooled, so a parsing gap only ever makes
-/// Almanac wait.
+/// Reads the table Renovate puts at the top of a pull request. If any update row cannot be
+/// read, the whole update is empty and its age stays unknown, so a parsing gap only ever
+/// makes Almanac wait.
 pub fn update_of(text: &PullText) -> Update {
     let body = text.body.as_deref().unwrap_or_default();
     let rows = body
         .lines()
         .filter(|l| l.starts_with('|') && l.contains('→'));
     Update {
-        packages: rows.filter_map(package_of).collect(),
+        packages: rows
+            .map(package_of)
+            .collect::<Option<Vec<_>>>()
+            .unwrap_or_default(),
     }
 }
 

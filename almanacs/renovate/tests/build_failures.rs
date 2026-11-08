@@ -4,10 +4,11 @@ use almanac::runtime::{Envelope, Ingest, Origin, Outcome, Runtime};
 use almanac::testing::{FakeTracker, ScriptedHarness};
 use almanac_renovate::events::BuildChanged;
 use almanac_renovate::fleet::{self, ATTEMPT_CAP, State, derive};
-use almanac_renovate::update::{Ages, Update};
+use almanac_renovate::update::{Ages, RegistryAges, Update};
 use almanac_renovate::workflows::build_failures::*;
 use github::client::{Auth, GithubClient};
 use github::forge::{CommitAuthor, GithubForge};
+use registry::{Package, PackageRegistry};
 use serde_json::{Value, json};
 use simforge::{Pull, RENOVATE, Repo, SimForge, Suite};
 use std::sync::{Arc, Mutex};
@@ -65,10 +66,14 @@ async fn capture(sim: &SimForge) -> Arc<Mutex<Vec<axum::body::Bytes>>> {
 }
 
 async fn world(published: Published, reply: Value) -> World {
+    world_with_ages(BODY, Arc::new(Aged(published)), reply).await
+}
+
+async fn world_with_ages(body: &str, ages: Arc<dyn Ages>, reply: Value) -> World {
     let sim = SimForge::start().await;
     sim.add_repo(Repo::public(REPO));
     let mut pull = Pull::renovate(BRANCH, "Update tar");
-    pull.body = Some(BODY.to_string());
+    pull.body = Some(body.to_string());
     let number = sim.add_pull(REPO, pull);
     let received = capture(&sim).await;
     let harness = ScriptedHarness::replying(reply);
@@ -76,7 +81,6 @@ async fn world(published: Published, reply: Value) -> World {
     let client = || GithubClient::new(sim.base_url(), Auth::Token("t".to_string()));
     let forge: Arc<dyn Forge> = Arc::new(GithubForge::new(client(), CommitAuthor::default()));
     let tracked: Arc<dyn Tracker> = Arc::new(tracker.clone());
-    let ages: Arc<dyn Ages> = Arc::new(Aged(published));
     let target = ScanTarget {
         owner: "owner".to_string(),
         author: RENOVATE.to_string(),
@@ -205,6 +209,34 @@ async fn an_update_with_no_publish_time_awaits() {
     w.suite_finishes("failure").await;
     w.settle().await;
     assert_eq!(w.harness.calls(), 0);
+}
+
+struct OldPackages;
+
+impl PackageRegistry for OldPackages {
+    fn published<'a>(&'a self, _: &'a Package) -> BoxFuture<'a, Result<Published, StepError>> {
+        Box::pin(async { Ok(hours_old(100)) })
+    }
+
+    fn artifact<'a>(&'a self, _: &'a Package) -> BoxFuture<'a, Result<Vec<u8>, StepError>> {
+        Box::pin(async { Ok(vec![]) })
+    }
+}
+
+#[tokio::test]
+async fn an_incompletely_parsed_group_awaits_without_an_agent_or_push() {
+    let body = format!("{BODY}| ghcr.io/example/image | `old` → `new` |\n");
+    let ages = Arc::new(RegistryAges(Arc::new(OldPackages)));
+    let mut w = world_with_ages(&body, ages, patch_reply("src/main.rs")).await;
+    w.suite_finishes("failure").await;
+    let outcomes = w.settle().await;
+    let Outcome::Ran { effects, .. } = &outcomes[0] else {
+        panic!("{outcomes:?}");
+    };
+    assert_eq!(effects[0].kind(), EffectKind::Await);
+    assert_eq!(w.harness.calls(), 0);
+    assert_eq!(w.pushes(), 0);
+    assert!(w.statuses().is_empty());
 }
 
 #[tokio::test]
