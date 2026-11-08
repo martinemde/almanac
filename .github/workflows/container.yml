@@ -1,0 +1,64 @@
+name: Container
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Check public content
+        run: tools/check-public.sh
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Build for smoke test
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.source=https://github.com/martinemde/almanac
+            org.opencontainers.image.revision=${{ github.sha }}
+          load: true
+          tags: almanac:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test report without credentials or model
+        run: python3 tools/test-container.py --engine docker almanac:ci
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ghcr.io/martinemde/almanac
+        run: |
+          docker tag almanac:ci "$IMAGE:main"
+          docker tag almanac:ci "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:main"
+          docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:sha-$GITHUB_SHA" > image-digest.txt
+          cat image-digest.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Save published digest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-digest
+          path: image-digest.txt
