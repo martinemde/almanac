@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>martinemde/renovate-config#v1.0.0"
+  ],
+  "automerge": false,
+  "enabledManagers": [
+    "cargo",
+    "mise",
+    "dockerfile",
+    "github-actions",
+    "rust-toolchain",
+    "renovate-config"
+  ],
+  "dockerfile": {
+    "managerFilePatterns": [
+      "/(^|/)(?:Dockerfile|Containerfile)$/"
+    ]
+  },
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "rust-version",
+        "docker"
+      ],
+      "matchPackageNames": [
+        "rust",
+        "docker.io/library/rust"
+      ],
+      "groupName": "Rust toolchain"
+    },
+    {
+      "matchPackageNames": [
+        "*"
+      ],
+      "automerge": false
+    }
+  ],
+  "forkProcessing": "enabled"
+}

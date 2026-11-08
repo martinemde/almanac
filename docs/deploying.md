@@ -123,3 +123,17 @@ Install the App on the remaining repositories. Nothing else changes, because the
 - An abandoned sandbox ends itself within two hours.
 - During a long database outage at boot, `TimeoutStartSec=infinity` keeps the unit waiting instead of restarting it.
 - Errors have codes: `almanac-renovate explain almanac::store::failed`.
+
+## Application container (report proof)
+
+```bash
+podman build -t localhost/almanac:report -f Containerfile .
+python3 tools/test-container.py localhost/almanac:report
+podman run --rm --read-only --env-file report.env localhost/almanac:report
+```
+
+`report.env` supplies `ALMANAC_OWNER` and a read-only `GITHUB_TOKEN` (or the `GITHUB_APP_` settings); keep it outside version control. No model key or database is needed for `report`. The image runs as numeric user 65532. Its default entrypoint is `almanac-renovate`, its default command is `report`, and it sets read-only/dry mode. Use a published digest rather than the mutable `main` tag for a repeatable run.
+
+The broker binary is also included. It requires `DATABASE_URL` and `ALMANAC_WEBHOOK_SECRET` and enforces a loopback listener. On Linux, an explicit broker run can use `podman run --rm --network=host --env-file broker.env --entrypoint almanac-broker localhost/almanac:report`; publish no container ports and retain the loopback-only ingress arrangement above. This starts the broker only when explicitly requested; the image never starts a daemon by default.
+
+This image cannot run repairs: those need the external `claude` and `podman` subprocesses plus a prepared sandbox image and caches. Do not treat it as the full host deployment described above. See [the container build decision](adrs/container-build.md) for the proof's scope and CI publication behavior.
