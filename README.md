@@ -42,6 +42,8 @@ cargo run -- explain almanac::config::secret
 
 `make check` needs podman and the `claude` CLI. It calls no model and needs no credentials. `synth` prints what an almanac may do, and `explain` gives the long form of any error.
 
+The GitHub Actions `ci` check runs lint, generated-code checks, offline tests for both workspaces, the publication check, and dependency policy checks. Podman, database, scaffold, and real CLI integration tests remain part of the local `make check` gate. Renovate inherits the shared dependency policy; preset updates and pins stay review-only. Auto-merge must remain gated by the required `ci` check on `main`.
+
 To start your own:
 
 ```bash
