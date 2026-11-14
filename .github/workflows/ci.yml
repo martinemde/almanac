@@ -20,6 +20,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - name: Install lint components for the project toolchain
+        run: mise exec -- rustup component add rustfmt clippy
       - name: Lint, generated code, and offline tests
         run: mise exec -- make lint generated test check-public
       - name: Dependency policy
