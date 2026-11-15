@@ -52,7 +52,7 @@ version = "0.0.0"
 dependencies = [
  "almanac-macros",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "deliveries",
  "futures",
  "insta",
@@ -555,7 +555,7 @@ version = "0.0.0"
 dependencies = [
  "almanac",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "flate2",
  "futures",
  "sandbox",
@@ -1200,7 +1200,7 @@ version = "0.0.0"
 dependencies = [
  "almanac",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "jsonwebtoken",
  "reqwest",
  "serde",
@@ -3081,7 +3081,7 @@ version = "0.0.0"
 dependencies = [
  "almanac",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "github",
  "hex",
  "hmac 0.12.1",
