@@ -1,7 +1,7 @@
 # Every tool the build uses. Run `mise install` once. The only system package assumed is podman, which the database tests use.
 
 [tools]
-rust = "1.99.0"
+rust = "1.99.1"
 hk = "2.11.1"
 pkl = "0.32.2"
 cargo-deny = "0.20.2"
