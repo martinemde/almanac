@@ -24,7 +24,7 @@ base64 = "0.22"
 flate2 = "1"
 futures = "0.3"
 hex = "0.4"
-hmac = "0.12"
+hmac = "0.13"
 insta = "1"
 jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs", "use_pem"] }
 miette = { version = "7", features = ["fancy"] }
