@@ -1,7 +1,7 @@
 # What a Fixer builds in for most repositories. A sandbox has no network, so anything a build needs
 # must be here or in the dependency cache uploaded with the checkout.
 FROM docker.io/library/node:24-bookworm AS node
-FROM docker.io/oven/bun:1 AS bun
+FROM docker.io/oven/bun:1@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d AS bun
 
 FROM docker.io/library/golang:1-bookworm
 # Shared, because a sandbox runs as an unprivileged user.
